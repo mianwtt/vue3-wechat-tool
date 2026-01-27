@@ -1,7 +1,26 @@
 <template>
   <div class="phone-body" :class="{'dark': appearance.darkMode}" ref="phoneBodyRef" @contextmenu.stop="handlePhoneBodyContextMenu">
+    <!-- 搜索框 -->
+    <div class="search-container" :class="{'dark': appearance.darkMode}">
+      <a-input
+        v-model:value="searchKeyword"
+        placeholder="搜索对话内容"
+        @input="handleSearch"
+        @keyup.enter="handleNext"
+        @keyup.shift.enter="handlePrev"
+        @keyup.esc="clearSearch"
+      />
+      <div class="search-controls">
+        <a-button @click="handlePrev" :disabled="currentMatchIndex < 0">上一个</a-button>
+        <a-button @click="handleNext" :disabled="currentMatchIndex >= matchCount - 1">下一个</a-button>
+        <a-button @click="clearSearch">清除</a-button>
+      </div>
+      <div class="search-count" v-if="matchCount > 0">
+        {{ currentMatchIndex + 1 }}/{{ matchCount }}
+      </div>
+    </div>
     <div class="wechat-content">
-      <div class="wechat-item" :id="chat.id" v-for="chat in useChatStore.chatList" :key="chat.id" :class="{'wechat-item-right': chat.role === 'own', 'wechat-item-rejected': chat.role === 'own' && chat.rejected, 'wechat-item-notice-box': !showAvatar(chat), 'active': useContextMenuStore.activeChatId === chat.id}" @contextmenu.stop="e => rightClicked(e, chat.id)">
+      <div class="wechat-item" :id="chat.id" v-for="chat in useChatStore.chatList" :key="chat.id" :class="{'wechat-item-right': chat.role === 'own', 'wechat-item-rejected': chat.role === 'own' && chat.rejected, 'wechat-item-notice-box': !showAvatar(chat), 'active': useContextMenuStore.activeChatId === chat.id, 'search-match': isMatch(chat)}" @contextmenu.stop="e => rightClicked(e, chat.id)">
         <div class="wechat-item-avatar" v-if="showAvatar(chat)">
           <img :src="chat.user.avatar" alt="">
         </div>
@@ -9,7 +28,7 @@
           <div class="wechat-item-name" v-if="useSystemStore.appearance.showChatName && !['time', 'takeAPat', 'revoke', 'system'].includes(chat.type)">
             {{ chat.user.nickname }}
           </div>
-          <div class="wechat-item-text" v-if="chat.type === 'text'" v-html="renderText(chat.content, emojiBase64)"></div>
+          <div class="wechat-item-text" v-if="chat.type === 'text'" v-html="renderTextWithHighlight(chat.content, emojiBase64)"></div>
           <div class="wechat-item-text wechat-item-image" v-else-if="chat.type === 'image'">
             <img :src="chat.content" alt="">
           </div>
@@ -93,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import useStore from "@/store";
 const { useSystemStore, useUserStore, useChatStore, useContextMenuStore } = useStore();
 import useAutoScrollBottom from "@/hooks/useAutoScrollBottom";
@@ -110,6 +129,119 @@ const props = defineProps({
     default: () => {},
   },
 })
+
+// 搜索相关变量
+const searchKeyword = ref("");
+const matchCount = ref(0);
+const currentMatchIndex = ref(-1);
+const matchedChatIds = ref([]);
+
+// 渲染文本并高亮搜索关键词
+const renderTextWithHighlight = (text, emojiBase64) => {
+  if (!searchKeyword.value) {
+    return renderText(text, emojiBase64);
+  }
+  
+  let replacedText = text;
+  
+  // 先处理表情
+  replacedText = replacedText.replace(/\[.*?\]/g, (match) => {
+    const emoticon = match.trim().replace('[', '').replace(']', '');
+    if (emojiBase64.hasOwnProperty(emoticon)) {
+      const imageUrl = emojiBase64[emoticon];
+      return `<img class="emoji-img" style="width:58px;margin:8px 4px 2px;vertical-align:bottom;" src="data:image/png;base64,${imageUrl}" alt="${emoticon}">`;
+    }
+    return match;
+  });
+  
+  // 高亮搜索关键词
+  const keyword = searchKeyword.value.replace(/[.*+?^${}()|\[\]\\]/g, '\\$&'); // 转义正则特殊字符
+  const regex = new RegExp(`(${keyword})`, 'gi');
+  replacedText = replacedText.replace(regex, '<span class="search-highlight">$1</span>');
+  
+  // 处理换行
+  replacedText = replacedText.replace(/\n/g, "<br />");
+  
+  return replacedText;
+};
+
+// 处理搜索
+const handleSearch = () => {
+  if (!searchKeyword.value) {
+    clearSearch();
+    return;
+  }
+  
+  const chatList = useChatStore.chatList;
+  const keyword = searchKeyword.value.toLowerCase();
+  matchedChatIds.value = chatList
+    .filter(chat => chat.type === 'text' && chat.content.toLowerCase().includes(keyword))
+    .map(chat => chat.id);
+  
+  matchCount.value = matchedChatIds.value.length;
+  currentMatchIndex.value = matchCount.value > 0 ? 0 : -1;
+  
+  if (matchCount.value > 0) {
+    scrollToMatch(0);
+  }
+};
+
+// 滚动到匹配项
+const scrollToMatch = (index) => {
+  if (index < 0 || index >= matchedChatIds.value.length) return;
+  
+  const chatId = matchedChatIds.value[index];
+  const targetElement = document.getElementById(chatId);
+  if (targetElement) {
+    // 添加定位强调效果
+    targetElement.classList.add('search-highlight-item');
+    setTimeout(() => {
+      targetElement.classList.remove('search-highlight-item');
+    }, 1000);
+    
+    // 滚动到目标元素
+    targetElement.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }
+};
+
+// 下一个匹配项
+const handleNext = () => {
+  if (currentMatchIndex.value < matchCount.value - 1) {
+    currentMatchIndex.value++;
+    scrollToMatch(currentMatchIndex.value);
+  }
+};
+
+// 上一个匹配项
+const handlePrev = () => {
+  if (currentMatchIndex.value > 0) {
+    currentMatchIndex.value--;
+    scrollToMatch(currentMatchIndex.value);
+  }
+};
+
+// 清除搜索
+const clearSearch = () => {
+  searchKeyword.value = "";
+  matchCount.value = 0;
+  currentMatchIndex.value = -1;
+  matchedChatIds.value = [];
+};
+
+// 判断是否为匹配项
+const isMatch = (chat) => {
+  return matchedChatIds.value.includes(chat.id);
+};
+
+// 监听对话列表变化，更新搜索结果
+watch(() => useChatStore.chatList, () => {
+  if (searchKeyword.value) {
+    handleSearch();
+  }
+}, { deep: true });
 
 const handlePhoneBodyContextMenu = (e) => {
   e.preventDefault();
@@ -155,6 +287,61 @@ const showAvatar = (chat) => {
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
   overflow-y: scroll;
+  
+  .search-container {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 20px;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    
+    &.dark {
+      background-color: #333;
+      
+      .ant-input {
+        background-color: #444;
+        border-color: #555;
+        color: #fff;
+      }
+    }
+    
+    .search-controls {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .search-count {
+      margin-left: auto;
+      font-size: 14px;
+      color: #666;
+      
+      &.dark {
+        color: #ccc;
+      }
+    }
+  }
+  
+  .search-highlight {
+    background-color: #ffff00;
+    font-weight: bold;
+  }
+  
+  .search-highlight-item {
+    animation: highlight 1s ease-in-out;
+  }
+  
+  @keyframes highlight {
+    0%, 100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: rgba(255, 255, 0, 0.2);
+    }
+  }
+  
   .wechat-content {
     .wechat-item {
       padding: 25px 36px;
