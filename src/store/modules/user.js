@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { otherAvatar } from "@/utils/avatar";
 import { indexedDBStorage } from "@/utils/storage";
+import { useSearchStore } from "./search";
 
 export const useUserStore = defineStore("toolUser", {
   state: () => ({
@@ -23,7 +24,7 @@ export const useUserStore = defineStore("toolUser", {
     async init() {
       const toolUser = await indexedDBStorage.getItem('toolUser');
       if (!toolUser) return;
-      const {userList, activeUserId} = JSON.parse(toolUser);
+      const { userList, activeUserId } = JSON.parse(toolUser);
       this.userList = userList;
       this.activeUserId = activeUserId;
     },
@@ -37,6 +38,9 @@ export const useUserStore = defineStore("toolUser", {
     },
     selectUser(id) {
       this.activeUserId = id;
+      // Clear search when switching users
+      const searchStore = useSearchStore();
+      searchStore.clearSearch();
     },
     deleteUser(id) {
       this.userList = this.userList.filter(user => user.id != id);
