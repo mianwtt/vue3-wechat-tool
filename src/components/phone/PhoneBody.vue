@@ -562,27 +562,5 @@ const showAvatar = (chat) => {
       }
     }
   }
-  
-  // Search highlight styles
-  .wechat-item.search-highlight {
-    animation: searchPulse 1s ease-in-out;
-    
-    .wechat-item-text {
-      box-shadow: 0 0 0 3px #1890ff;
-      transition: box-shadow 0.3s ease;
-    }
-  }
-  
-  @keyframes searchPulse {
-    0% {
-      background-color: transparent;
-    }
-    50% {
-      background-color: rgba(24, 144, 255, 0.2);
-    }
-    100% {
-      background-color: transparent;
-    }
-  }
 }
 </style>

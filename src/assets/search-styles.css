@@ -1,0 +1,60 @@
+/* Search highlight styles */
+.wechat-item.search-highlight-active {
+  animation: searchPulse 1.5s ease-in-out;
+  position: relative;
+}
+
+.wechat-item.search-highlight-active::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 3px solid #1890ff;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.wechat-item.search-highlight-active .wechat-item-text {
+  background-color: rgba(24, 144, 255, 0.1) !important;
+  transition: background-color 0.3s ease;
+}
+
+/* Keyword highlighting within message text */
+.search-keyword {
+  background-color: #ffeb3b;
+  color: #000;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.dark .search-keyword {
+  background-color: #ff9800;
+  color: #000;
+}
+
+@keyframes searchPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.7);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(24, 144, 255, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
+}
+
+/* Dark mode adjustments */
+.dark .wechat-item.search-highlight-active::before {
+  border-color: #40a9ff;
+}
+
+.dark .wechat-item.search-highlight-active .wechat-item-text {
+  background-color: rgba(64, 169, 255, 0.2) !important;
+}

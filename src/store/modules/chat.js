@@ -34,7 +34,7 @@ export const useChatStore = defineStore("toolChat", {
     async init() {
       const toolChat = await indexedDBStorage.getItem('toolChat');
       if (!toolChat) return;
-      const { chatList, activeType, generateConfig } = JSON.parse(toolChat);
+      const {chatList, activeType, generateConfig} = JSON.parse(toolChat);
       this.chatList = chatList;
       this.activeType = activeType;
       this.generateConfig = generateConfig;

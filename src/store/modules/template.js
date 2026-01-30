@@ -11,7 +11,7 @@ export const useTemplateStore = defineStore("toolTemplate", {
     async init() {
       const toolTemplate = await indexedDBStorage.getItem('toolTemplate');
       if (!toolTemplate) return;
-      const { list } = JSON.parse(toolTemplate);
+      const {list} = JSON.parse(toolTemplate);
       this.list = list;
     },
     // 新增聊天模板
@@ -28,10 +28,10 @@ export const useTemplateStore = defineStore("toolTemplate", {
     loadTemplate(templateData) {
       const chatStore = useChatStore();
       const searchStore = useSearchStore();
-
+      
       // Clear search when loading new template
       searchStore.clearSearch();
-
+      
       // Load template data into chat store
       if (templateData.chatList) {
         chatStore.chatList = templateData.chatList;

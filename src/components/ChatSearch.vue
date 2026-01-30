@@ -2,13 +2,13 @@
   <div class="chat-search" :class="{ 'dark': appearance.darkMode }">
     <div class="search-input-wrapper">
       <a-input
-        v-model:value="searchKeyword"
+        :value="searchKeyword"
+        @update:value="handleSearchInput"
         placeholder="搜索聊天内容"
         class="search-input"
         @press-enter="handleEnter"
         @keydown="handleKeydown"
         allow-clear
-        @change="handleSearchChange"
       >
         <template #prefix>
           <SearchOutlined />
@@ -22,10 +22,10 @@
         <span class="search-count" v-else>无结果</span>
         
         <a-button-group size="small">
-          <a-button @click="searchStore.navigateToPrevious()" size="small">
+          <a-button @click="navigatePrevious" size="small" :disabled="!searchStore.hasResults">
             <template #icon><UpOutlined /></template>
           </a-button>
-          <a-button @click="searchStore.navigateToNext()" size="small">
+          <a-button @click="navigateNext" size="small" :disabled="!searchStore.hasResults">
             <template #icon><DownOutlined /></template>
           </a-button>
         </a-button-group>
@@ -38,10 +38,10 @@
     
     <div class="search-filters" v-if="searchKeyword">
       <a-select
-        v-model:value="searchStore.searchFilter.sender"
+        :value="searchStore.searchFilter.sender"
+        @update:value="handleFilterChange"
         style="width: 120px"
         size="small"
-        @change="handleFilterChange"
       >
         <a-select-option value="all">全部发送者</a-select-option>
         <a-select-option value="own">仅自己</a-select-option>
@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { SearchOutlined, UpOutlined, DownOutlined } from '@ant-design/icons-vue';
 import useStore from '@/store';
 
@@ -79,19 +79,19 @@ const searchKeyword = computed({
   set: (value) => useSearchStore.setSearchKeyword(value)
 });
 
-const handleSearchChange = () => {
-  // The setter above already calls setSearchKeyword
+const handleSearchInput = (value) => {
+  searchKeyword.value = value;
 };
 
-const handleFilterChange = () => {
-  // The search will be re-triggered automatically by the watcher
+const handleFilterChange = (value) => {
+  useSearchStore.setSearchFilter({ sender: value });
 };
 
 const handleEnter = (e) => {
   if (e.shiftKey) {
-    useSearchStore.navigateToPrevious();
+    navigatePrevious();
   } else {
-    useSearchStore.navigateToNext();
+    navigateNext();
   }
 };
 
@@ -101,14 +101,17 @@ const handleKeydown = (e) => {
   }
 };
 
+const navigateNext = () => {
+  useSearchStore.navigateToNext();
+};
+
+const navigatePrevious = () => {
+  useSearchStore.navigateToPrevious();
+};
+
 const clearSearch = () => {
   useSearchStore.clearSearch();
 };
-
-// Watch for chat changes to re-trigger search
-watch(() => useSearchStore.searchKeyword, () => {
-  // Search is already handled by the setter
-});
 </script>
 
 <style lang="less" scoped>
