@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import eventBus from '@/utils/eventBus';
 import { indexedDBStorage } from "@/utils/storage";
 import { useUserStore } from "./user";
+import { useSearchStore } from "./search";
 
 export const useChatStore = defineStore("toolChat", {
   state: () => ({
@@ -54,11 +55,21 @@ export const useChatStore = defineStore("toolChat", {
         ...chatInfo,
       })
       eventBus.emit("sentChat");
+      // Clear search when new message is added
+      const searchStore = useSearchStore();
+      if (searchStore.searchKeyword) {
+        searchStore.performSearch();
+      }
     },
     // 修改消息
     editChat(chatInfo) {
       const editIndex = this.chatList.findIndex(chat => chat.id === chatInfo.id);
       this.chatList.splice(editIndex, 1, chatInfo);
+      // Re-perform search if currently searching
+      const searchStore = useSearchStore();
+      if (searchStore.searchKeyword) {
+        searchStore.performSearch();
+      }
     },
   },
   persist: {

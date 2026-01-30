@@ -8,15 +8,26 @@
       <span class="center-span"> <span class="user-name">{{chatTitle}}</span> <i class="do-not-disturb" v-if="appearance.doNotDisturb"></i><i class="ear-phone-mode" v-if="appearance.earphoneMode"></i> </span>
     </div>
     <div class="phone-nav-right">
+      <div class="phone-nav-search" @click="toggleSearch">
+        <SearchOutlined />
+      </div>
       <div class="phone-nav-more">更多</div>
     </div>
+    
+    <!-- Search Component -->
+    <ChatSearch 
+      v-if="showSearch" 
+      :appearance="appearance"
+      @close="showSearch = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import useStore from "@/store";
-const { useSystemStore } = useStore();
+import { SearchOutlined } from '@ant-design/icons-vue';
+import ChatSearch from '@/components/ChatSearch.vue';
 import { truncateMiddle } from "@/utils/utils"
 
 const props = defineProps({
@@ -26,9 +37,16 @@ const props = defineProps({
   }
 })
 
+const { useSystemStore } = useStore();
+const showSearch = ref(false);
+
 const chatTitle = computed(() => {
   return truncateMiddle(useSystemStore.appearance.chatTitle, 14)
 })
+
+const toggleSearch = () => {
+  showSearch.value = !showSearch.value;
+}
 </script>
 
 <style lang="less" scoped>
@@ -105,6 +123,24 @@ const chatTitle = computed(() => {
     width: 150px;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    gap: 20px;
+    
+    .phone-nav-search {
+      font-size: 42px;
+      color: #333;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      
+      &:hover {
+        opacity: 0.7;
+      }
+    }
+    
     .phone-nav-more {
       width: 70px;
       height: 12px;
@@ -143,6 +179,9 @@ const chatTitle = computed(() => {
       }
     }
     .phone-nav-right {
+      .phone-nav-search {
+        color: #d9d9d9;
+      }
       .phone-nav-more {
         background: url(@/assets/images/nav/wechat-nav-right-dark.png) no-repeat;
       }
